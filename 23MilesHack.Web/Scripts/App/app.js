@@ -67,8 +67,7 @@ WebRtc.App = (function (viewModel, connectionManager) {
             getUserMedia(
                 {
                     // Permissions to request
-                    video: true,
-                    audio: true
+                    video: true
                 },
                 function (stream) { // succcess callback gives us a media stream
                     $('.instructions').hide();
