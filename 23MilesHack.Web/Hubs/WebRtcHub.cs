@@ -10,21 +10,27 @@
 	public class WebRtcHub : Hub
 	{
 		private static readonly List<User> Users = new List<User>();
-		private static readonly List<CallOffer> CallOffers = new List<CallOffer>();
 
-		private static readonly UserCall Conference = new UserCall { Users = new List<User>() };
-		
+
 		public void Join(string username)
 		{
+			var me = new User { Username = username, ConnectionId = Context.ConnectionId };
 			// Add the new user
-			Users.Add(new User
-			{
-				Username = username,
-				ConnectionId = Context.ConnectionId
-			});
+			Users.Add(me);
 
-			// Send down the new list to all clients
-			SendUserListUpdate();
+			this.updateList();
+
+			CallOthers(me);
+		}
+
+		private void CallOthers(User me)
+		{
+			Clients.Others.callAccepted(me);
+		}
+
+		private void updateList()
+		{
+			Clients.All.updateUserList(Users);
 		}
 
 		public override System.Threading.Tasks.Task OnDisconnected()
@@ -36,106 +42,11 @@
 			Users.RemoveAll(u => u.ConnectionId == Context.ConnectionId);
 
 			// Send down the new user list to all clients
-			SendUserListUpdate();
+			this.updateList();
 
 			return base.OnDisconnected();
 		}
-
-		public void CallUser(string targetConnectionId)
-		{
-			var callingUser = Users.SingleOrDefault(u => u.ConnectionId == Context.ConnectionId);
-			var targetUser = Users.SingleOrDefault(u => u.ConnectionId == targetConnectionId);
-
-			// Make sure the person we are trying to call is still here
-			if (targetUser == null)
-			{
-				// If not, let the caller know
-				Clients.Caller.callDeclined(targetConnectionId, "The user you called has left.");
-				return;
-			}
-
-			// And that they aren't already in a call
-			//if (GetUserCall(targetUser.ConnectionId) != null)
-			//{
-			//	Clients.Caller.callDeclined(targetConnectionId, string.Format("{0} is already in a call.", targetUser.Username));
-			//	return;
-			//}
-
-			// They are here, so tell them someone wants to talk
-			Clients.Client(targetConnectionId).incomingCall(callingUser);
-
-			// Create an offer
-			CallOffers.Add(new CallOffer
-			{
-				Caller = callingUser,
-				Callee = targetUser
-			});
-		}
-
-		public void AnswerCall(bool acceptCall, string targetConnectionId)
-		{
-			var callingUser = Users.SingleOrDefault(u => u.ConnectionId == Context.ConnectionId);
-			var targetUser = Users.SingleOrDefault(u => u.ConnectionId == targetConnectionId);
-
-			// This can only happen if the server-side came down and clients were cleared, while the user
-			// still held their browser session.
-			if (callingUser == null)
-			{
-				return;
-			}
-
-			// Make sure the original caller has not left the page yet
-			if (targetUser == null)
-			{
-				Clients.Caller.callEnded(targetConnectionId, "The other user in your call has left.");
-				return;
-			}
-
-			// Send a decline message if the callee said no
-			if (acceptCall == false)
-			{
-				Clients.Client(targetConnectionId).callDeclined(callingUser, string.Format("{0} did not accept your call.", callingUser.Username));
-				return;
-			}
-
-			// Make sure there is still an active offer.  If there isn't, then the other use hung up before the Callee answered.
-			var offerCount = CallOffers.RemoveAll(c => c.Callee.ConnectionId == callingUser.ConnectionId
-												  && c.Caller.ConnectionId == targetUser.ConnectionId);
-			if (offerCount < 1)
-			{
-				Clients.Caller.callEnded(targetConnectionId, string.Format("{0} has already hung up.", targetUser.Username));
-				return;
-			}
-
-			// And finally... make sure the user hasn't accepted another call already
-			//if (GetUserCall(targetUser.ConnectionId) != null)
-			//{
-			//	// And that they aren't already in a call
-			//	Clients.Caller.callDeclined(targetConnectionId, string.Format("{0} chose to accept someone elses call instead of yours :(", targetUser.Username));
-			//	return;
-			//}
-
-			// Remove all the other offers for the call initiator, in case they have multiple calls out
-			CallOffers.RemoveAll(c => c.Caller.ConnectionId == targetUser.ConnectionId);
-
-			var targetInCall = Conference.Users.Exists(user => user.ConnectionId == targetConnectionId);
-			if (!targetInCall)
-			{
-				Conference.Users.Add(targetUser);
-			}
-			var callerInCall = Conference.Users.Exists(user => user.ConnectionId == callingUser.ConnectionId);
-			if (!callerInCall)
-			{
-				Conference.Users.Add(callingUser);
-			}
-
-			// Tell the original caller that the call was accepted
-			Clients.Client(targetConnectionId).callAccepted(callingUser);
-
-			// Update the user list, since thes two are now in a call
-			SendUserListUpdate();
-		}
-
+		
 		public void HangUp()
 		{
 			var callingUser = Users.SingleOrDefault(u => u.ConnectionId == Context.ConnectionId);
@@ -145,12 +56,11 @@
 				return;
 			}
 
-			Conference.Users.Remove(callingUser);
-			
-			// Remove all offers initiating from the caller
-			CallOffers.RemoveAll(c => c.Caller.ConnectionId == callingUser.ConnectionId);
+			Users.Remove(callingUser);
 
-			SendUserListUpdate();
+			Clients.All.callEnded(callingUser, "disconnected");
+
+			this.updateList();
 		}
 
 		// WebRTC Signal Handler
@@ -165,32 +75,8 @@
 				return;
 			}
 
-			// Make sure that the person sending the signal is in a call
-			var userCall = GetUserCall(callingUser.ConnectionId);
-
-			// ...and that the target is the one they are in a call with
-			if (userCall && Conference.Users.Exists(u => u.ConnectionId == targetUser.ConnectionId))
-			{
-				// These folks are in a call together, let's let em talk WebRTC
-				Clients.Client(targetConnectionId).receiveSignal(callingUser, signal);
-			}
+			Clients.Client(targetConnectionId).receiveSignal(callingUser, signal);
 		}
 
-		#region Private Helpers
-
-		private void SendUserListUpdate()
-		{
-			Users.ForEach(u => u.InCall = GetUserCall(u.ConnectionId));
-			Clients.All.updateUserList(Users);
-		}
-
-		private bool GetUserCall(string connectionId)
-		{
-			var matchingCall =
-				Conference.Users.SingleOrDefault(u => u.ConnectionId == connectionId) != null;
-			return matchingCall;
-		}
-
-		#endregion
 	}
 }
