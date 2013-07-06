@@ -140,7 +140,7 @@ WebRtc.ConnectionManager = (function () {
             if (connection) {
                 // Let the user know which streams are leaving
                 // todo: foreach connection.remoteStreams -> onStreamRemoved(stream.id)
-                _onStreamRemovedCallback(null, null);
+                _onStreamRemovedCallback(connection, null);
 
                 // Close the connection
                 connection.close();

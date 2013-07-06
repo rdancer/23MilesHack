@@ -112,25 +112,7 @@ WebRtc.App = (function (viewModel, connectionManager) {
         },
         
         _setupHubCallbacks = function (hub) {
-            // Hub Callback: Incoming Call
-            hub.client.incomingCall = function (callingUser) {
-                console.log('incoming call from: ' + JSON.stringify(callingUser));
-
-                // Ask if we want to talk
-                alertify.confirm(callingUser.Username + ' is calling.  Do you want to chat?', function (e) {
-                    if (e) {
-                        // I want to chat
-                        hub.server.answerCall(true, callingUser.ConnectionId);
-
-                        // So lets go into call mode on the UI
-                        viewModel.Mode('incall');
-                    } else {
-                        // Go away, I don't want to chat with you
-                        hub.server.answerCall(false, callingUser.ConnectionId);
-                    }
-                });
-            };
-
+            
             // Hub Callback: Call Accepted
             hub.client.callAccepted = function (acceptingUser) {
                 console.log('call accepted from: ' + JSON.stringify(acceptingUser) + '.  Initiating WebRTC call and offering my stream up...');
@@ -142,26 +124,15 @@ WebRtc.App = (function (viewModel, connectionManager) {
                 viewModel.Mode('incall');
             };
 
-            // Hub Callback: Call Declined
-            hub.client.callDeclined = function (decliningConnectionId, reason) {
-                console.log('call declined from: ' + decliningConnectionId);
-
-                // Let the user know that the callee declined to talk
-                alertify.error(reason);
-
-                // Back to an idle UI
-                viewModel.Mode('idle');
-            };
-
             // Hub Callback: Call Ended
-            hub.client.callEnded = function (connectionId, reason) {
-                console.log('call with ' + connectionId + ' has ended: ' + reason);
+            hub.client.callEnded = function (user, reason) {
+                console.log('call with ' + user.ConnectionId + ' has ended: ' + reason);
 
                 // Let the user know why the server says the call is over
                 alertify.error(reason);
 
                 // Close the WebRTC connection
-                connectionManager.closeConnection(connectionId);
+                connectionManager.closeConnection(user.ConnectionId);
 
                 // Set the UI back into idle mode
                 viewModel.Mode('idle');
@@ -188,6 +159,7 @@ WebRtc.App = (function (viewModel, connectionManager) {
                 console.log(connection, event);
                 console.log('binding remote stream to the partner window');
 
+                connection.hackStreamId = event.stream.id;
                 //todo: adding multiple connections 
 
                 // Bind the remote stream to the partner window
@@ -203,6 +175,12 @@ WebRtc.App = (function (viewModel, connectionManager) {
 
                 x.appendChild(otherVideo);
                 parent.appendChild(x);
+
+                var dispose = function(e) {
+                    otherVideo.src = '';
+                };
+                
+                otherVideo.addEventListener("error", dispose);
                 
                 attachMediaStream(otherVideo, event.stream); // from adapter.js
             },
@@ -211,9 +189,8 @@ WebRtc.App = (function (viewModel, connectionManager) {
                 console.log('removing remote stream from partner window');
                 
                 // Clear out the partner window
-                var otherVideo = document.querySelector('.video.partner');
-                otherVideo.src = '';
-
+                var otherVideo = document.querySelector('.' + connection.hackStreamId);
+                $(otherVideo).remove();
             }
         };
 
