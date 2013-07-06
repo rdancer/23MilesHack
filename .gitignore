@@ -3,10 +3,7 @@
 
 *.user
 *.suo
-*.dll
-bin/
 obj/
-packages/
 
 
 _ReSharper*/
