@@ -108,7 +108,7 @@ WebRtc.App = (function (viewModel, connectionManager) {
         
         _attachUiHandlers = function() {
             // Add click handler to users in the "Users" pane
-            $('.user').live('click', function () {
+            $('.user').on('click', function () {
                 // Find the target user's SignalR client id
                 var targetConnectionId = $(this).attr('data-cid');
 
