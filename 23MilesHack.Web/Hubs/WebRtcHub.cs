@@ -10,9 +10,10 @@
 	public class WebRtcHub : Hub
 	{
 		private static readonly List<User> Users = new List<User>();
-		private static readonly List<UserCall> UserCalls = new List<UserCall>();
 		private static readonly List<CallOffer> CallOffers = new List<CallOffer>();
 
+		private static readonly UserCall Conference = new UserCall { Users = new List<User>() };
+		
 		public void Join(string username)
 		{
 			// Add the new user
@@ -54,11 +55,11 @@
 			}
 
 			// And that they aren't already in a call
-			if (GetUserCall(targetUser.ConnectionId) != null)
-			{
-				Clients.Caller.callDeclined(targetConnectionId, string.Format("{0} is already in a call.", targetUser.Username));
-				return;
-			}
+			//if (GetUserCall(targetUser.ConnectionId) != null)
+			//{
+			//	Clients.Caller.callDeclined(targetConnectionId, string.Format("{0} is already in a call.", targetUser.Username));
+			//	return;
+			//}
 
 			// They are here, so tell them someone wants to talk
 			Clients.Client(targetConnectionId).incomingCall(callingUser);
@@ -107,21 +108,26 @@
 			}
 
 			// And finally... make sure the user hasn't accepted another call already
-			if (GetUserCall(targetUser.ConnectionId) != null)
-			{
-				// And that they aren't already in a call
-				Clients.Caller.callDeclined(targetConnectionId, string.Format("{0} chose to accept someone elses call instead of yours :(", targetUser.Username));
-				return;
-			}
+			//if (GetUserCall(targetUser.ConnectionId) != null)
+			//{
+			//	// And that they aren't already in a call
+			//	Clients.Caller.callDeclined(targetConnectionId, string.Format("{0} chose to accept someone elses call instead of yours :(", targetUser.Username));
+			//	return;
+			//}
 
 			// Remove all the other offers for the call initiator, in case they have multiple calls out
 			CallOffers.RemoveAll(c => c.Caller.ConnectionId == targetUser.ConnectionId);
 
-			// Create a new call to match these folks up
-			UserCalls.Add(new UserCall
+			var targetInCall = Conference.Users.Exists(user => user.ConnectionId == targetConnectionId);
+			if (!targetInCall)
 			{
-				Users = new List<User> { callingUser, targetUser }
-			});
+				Conference.Users.Add(targetUser);
+			}
+			var callerInCall = Conference.Users.Exists(user => user.ConnectionId == callingUser.ConnectionId);
+			if (!callerInCall)
+			{
+				Conference.Users.Add(callingUser);
+			}
 
 			// Tell the original caller that the call was accepted
 			Clients.Client(targetConnectionId).callAccepted(callingUser);
@@ -139,25 +145,8 @@
 				return;
 			}
 
-			var currentCall = GetUserCall(callingUser.ConnectionId);
-
-			// Send a hang up message to each user in the call, if there is one
-			if (currentCall != null)
-			{
-				foreach (var user in currentCall.Users.Where(u => u.ConnectionId != callingUser.ConnectionId))
-				{
-					Clients.Client(user.ConnectionId).callEnded(callingUser.ConnectionId, string.Format("{0} has hung up.", callingUser.Username));
-				}
-
-				// Remove the call from the list if there is only one (or none) person left.  This should
-				// always trigger now, but will be useful when we implement conferencing.
-				currentCall.Users.RemoveAll(u => u.ConnectionId == callingUser.ConnectionId);
-				if (currentCall.Users.Count < 2)
-				{
-					UserCalls.Remove(currentCall);
-				}
-			}
-
+			Conference.Users.Remove(callingUser);
+			
 			// Remove all offers initiating from the caller
 			CallOffers.RemoveAll(c => c.Caller.ConnectionId == callingUser.ConnectionId);
 
@@ -180,7 +169,7 @@
 			var userCall = GetUserCall(callingUser.ConnectionId);
 
 			// ...and that the target is the one they are in a call with
-			if (userCall != null && userCall.Users.Exists(u => u.ConnectionId == targetUser.ConnectionId))
+			if (userCall && Conference.Users.Exists(u => u.ConnectionId == targetUser.ConnectionId))
 			{
 				// These folks are in a call together, let's let em talk WebRTC
 				Clients.Client(targetConnectionId).receiveSignal(callingUser, signal);
@@ -191,14 +180,14 @@
 
 		private void SendUserListUpdate()
 		{
-			Users.ForEach(u => u.InCall = (GetUserCall(u.ConnectionId) != null));
+			Users.ForEach(u => u.InCall = GetUserCall(u.ConnectionId));
 			Clients.All.updateUserList(Users);
 		}
 
-		private UserCall GetUserCall(string connectionId)
+		private bool GetUserCall(string connectionId)
 		{
 			var matchingCall =
-				UserCalls.SingleOrDefault(uc => uc.Users.SingleOrDefault(u => u.ConnectionId == connectionId) != null);
+				Conference.Users.SingleOrDefault(u => u.ConnectionId == connectionId) != null;
 			return matchingCall;
 		}
 

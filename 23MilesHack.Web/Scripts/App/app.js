@@ -177,7 +177,6 @@ WebRtc.App = (function (viewModel, connectionManager) {
                 connectionManager.newSignal(callingUser.ConnectionId, data);
             };
         },
-
         // Connection Manager Callbacks
         _callbacks = {
             onReadyForStream: function (connection) {
@@ -186,12 +185,25 @@ WebRtc.App = (function (viewModel, connectionManager) {
                 connection.addStream(_mediaStream);
             },
             onStreamAdded: function (connection, event) {
+                console.log(connection, event);
                 console.log('binding remote stream to the partner window');
 
                 //todo: adding multiple connections 
 
                 // Bind the remote stream to the partner window
-                var otherVideo = document.querySelector('.video.partner');
+
+                var parent = document.querySelector('#people');
+                
+                var x = document.createElement('div');
+                x.className = 'span2 ' + event.stream.id;
+
+                var otherVideo = document.createElement('video');
+                otherVideo.setAttribute("autoplay", "autoplay");
+                otherVideo.className = 'video partner cool-background';
+
+                x.appendChild(otherVideo);
+                parent.appendChild(x);
+                
                 attachMediaStream(otherVideo, event.stream); // from adapter.js
             },
             onStreamRemoved: function (connection, streamId) {
@@ -201,6 +213,7 @@ WebRtc.App = (function (viewModel, connectionManager) {
                 // Clear out the partner window
                 var otherVideo = document.querySelector('.video.partner');
                 otherVideo.src = '';
+
             }
         };
 
