@@ -106,39 +106,9 @@ WebRtc.App = (function (viewModel, connectionManager) {
             );
         },
         
-        _attachUiHandlers = function() {
-            // Add click handler to users in the "Users" pane
-            $('.user').on('click', function () {
-                // Find the target user's SignalR client id
-                var targetConnectionId = $(this).attr('data-cid');
-
-                // Make sure we are in a state where we can make a call
-                if (viewModel.Mode() !== 'idle') {
-                    alertify.error('Sorry, you are already in a call.  Conferencing is not yet implemented.');
-                    return;
-                }
-
-                // Then make sure we aren't calling ourselves.
-                if (targetConnectionId != viewModel.MyConnectionId()) {
-                    // Initiate a call
-                    _hub.server.callUser(targetConnectionId);
-                    
-                    // UI in calling mode
-                    viewModel.Mode('calling');
-                } else {
-                    alertify.error("Ah, nope.  Can't call yourself.");
-                }
-            });
-
-            // Add handler for the hangup button
-            $('.hangup').click(function () {
-                // Only allow hangup if we are not idle
-                if (viewModel.Mode() != 'idle') {
-                    _hub.server.hangUp();
-                    connectionManager.closeAllConnections();
-                    viewModel.Mode('idle');
-                }
-            });
+        _attachUiHandlers = function () {
+            viewModel.injectHub(_hub);
+            viewModel.injectConnectionManager(connectionManager);
         },
         
         _setupHubCallbacks = function (hub) {

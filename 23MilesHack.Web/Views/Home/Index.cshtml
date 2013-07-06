@@ -51,7 +51,7 @@
                     <!-- In Call Actions -->
                     <div class="well actions">
                         <div class="status" data-bind="text: CallStatus"></div>
-                        <button class="btn btn-danger hangup">Hang Up</button>
+                        <button class="btn btn-danger hangup" data-bind="click: hangUp">Hang Up</button>
                     </div>
                     <!-- User List -->
                     <div class="well user-list">
@@ -59,7 +59,7 @@
                             <li class="nav-header">Online Users <small data-bind="text: Users().length"></small></li>
                             <!-- ko foreach: Users -->
                             <li class="user" data-bind="attr: { 'data-cid': ConnectionId, 'title': Username }">
-                                <a href="#"> <!-- only using an a here for bootstrap styling -->
+                                <a href="#" data-bind="click: $parent.callMate($data.ConnectionId())"> <!-- only using an a here for bootstrap styling -->
                                     <div class="username" data-bind="text: Username"></div>
                                     <div class="helper" data-bind="css: $parent.getUserStatus($data)"></div>
                                 </a>

@@ -14,6 +14,49 @@ WebRtc.ViewModel = (function () {
         Loading: ko.observable(false) // Loading indicator control
     };
 
+    var _hub, _connectionManager;
+
+    viewModel.injectHub = function(hub) {
+        _hub = hub;
+    };
+
+    viewModel.injectConnectionManager = function(connectionManager) {
+        _connectionManager = connectionManager;
+    };
+    
+    // UI commands
+    
+    // Add click handler to users in the "Users" pane
+    viewModel.callMate = function(id) {
+        return function () {
+            // Find the target user's SignalR client id
+            var targetConnectionId = id;
+
+            // Then make sure we aren't calling ourselves.
+            if (targetConnectionId != viewModel.MyConnectionId()) {
+                // Initiate a call
+                _hub.server.callUser(targetConnectionId);
+
+                // UI in calling mode
+                viewModel.Mode('calling');
+            } else {
+                alertify.error("Ah, nope.  Can't call yourself.");
+            }
+        };
+    };
+    
+    // Add handler for the hangup button
+    viewModel.hangUp = function() {
+        // Only allow hangup if we are not idle
+        if (viewModel.Mode() != 'idle') {
+            _hub.server.hangUp();
+            _connectionManager.closeAllConnections();
+            viewModel.Mode('idle');
+        }
+    };
+    
+
+
     // The user that represents me
     viewModel.Me = ko.computed(function () {
         return ko.utils.arrayFirst(this.Users(), function (user) {
