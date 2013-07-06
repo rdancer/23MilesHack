@@ -7,12 +7,12 @@
     <meta name="viewport" content="width=device-width">
 
     <!-- Styles -->
-    <link href="/Content/icomoon/style.css" rel="stylesheet" />
-    <link href="/Content/Site.css" rel="stylesheet" />
-    <link href="/Content/app.css" rel="stylesheet" />
-    <link href="/Content/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="/Content/alertify/alertify.core.css" rel="stylesheet" />
-    <link href="/Content/alertify/alertify.default.css" rel="stylesheet" />
+    <link href="../../Content/icomoon/style.css" rel="stylesheet" />
+    <link href="../../Content/Site.css" rel="stylesheet" />
+    <link href="../../Content/app.css" rel="stylesheet" />
+    <link href="../../Content/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="../../Content/alertify/alertify.core.css" rel="stylesheet" />
+    <link href="../../Content/alertify/alertify.default.css" rel="stylesheet" />
 
 </head>
     <body data-bind="attr: { 'data-mode': Mode }">
@@ -87,22 +87,60 @@
         </div>
         
         <!-- Libs -->
-        <script src="/Scripts/adapter.js"></script>
-        <script src="/Scripts/jquery-1.9.1.js"></script>
-        <script src="/Scripts/knockout-2.2.1.js"></script>
-        <script src="/Scripts/knockout.mapping-latest.js"></script>
-        <script src="/Scripts/knockout-postbox.min.js"></script>
-        <script src="/Scripts/alertify/alertify.min.js"></script>
-        <script src="/Content/bootstrap/js/bootstrap.min.js"></script>
-        <script src="/Scripts/jquery.signalR-1.0.0.min.js"></script>
+	<!-- Conditionally load files -->
+	<script type="text/javascript">
+		function urlExists(url)
+		{
+		    var http = new XMLHttpRequest();
+		    http.open('HEAD', url, false);
+		    http.send();
+		    return http.status!=404;
+		}
+
+		function loadJsCssFile(filename, filetype){
+		 if (filetype=="js"){ //if filename is a external JavaScript file
+		  var fileref=document.createElement('script')
+		  fileref.setAttribute("type","text/javascript")
+		  fileref.setAttribute("src", filename)
+		 }
+		 else if (filetype=="css"){ //if filename is an external CSS file
+		  var fileref=document.createElement("link")
+		  fileref.setAttribute("rel", "stylesheet")
+		  fileref.setAttribute("type", "text/css")
+		  fileref.setAttribute("href", filename)
+		 }
+		 if (typeof fileref!="undefined")
+		  document.getElementsByTagName("head")[0].appendChild(fileref)
+		}
+
+
+		function loadUnlessOnRdancersComputer(filename, filetype, why)
+		{
+		  if (urlExists("thisFileOnlyExistsOnRdancersComputer"))
+		  {
+		    console.log("Not loading '" + filetype + "' file '" + filename + "'; reason: " + why);
+		  } else {
+		    loadJsCssFile(filename, filetype);
+		  }
+		}
+	</script>
+
+        <script src="../../Scripts/adapter.js"></script>
+        <script src="../../Scripts/jquery-1.9.1.js"></script>
+        <script src="../../Scripts/knockout-2.2.1.js"></script>
+        <script src="../../Scripts/knockout.mapping-latest.js"></script>
+        <script src="../../Scripts/knockout-postbox.min.js"></script>
+	<script>loadUnlessOnRdancersComputer("../../Scripts/alertify/alertify.min.js", "js");</script>
+        <script src="../../Content/bootstrap/js/bootstrap.min.js"></script>
+        <script src="../../Scripts/jquery.signalR-1.0.0.min.js"></script>
         
         <!-- SignalR Proxy -->
         <script src="/signalr/hubs"></script>
         
         <!-- app -->
-        <script src="/Scripts/App/viewModel.js"></script>
-        <script src="/Scripts/App/connectionManager.js"></script>
-        <script src="/Scripts/App/app.js"></script>
+        <script src="../../Scripts/App/viewModel.js"></script>
+        <script src="../../Scripts/App/connectionManager.js"></script>
+        <script src="../../Scripts/App/app.js"></script>
 
     </body>
 </html>
