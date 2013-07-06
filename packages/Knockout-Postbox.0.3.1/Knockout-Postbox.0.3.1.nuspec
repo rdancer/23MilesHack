@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Knockout-Postbox</id>
+    <version>0.3.1</version>
+    <title>Knockout-Postbox</title>
+    <authors>Ryan Niemeyer</authors>
+    <owners>Ryan Niemeyer</owners>
+    <licenseUrl>http://www.opensource.org/licenses/mit-license.php</licenseUrl>
+    <projectUrl>https://github.com/rniemeyer/knockout-postbox</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>knockout-postbox is a Knockout.js plugin designed to use Knockout's basic pub/sub capabilities to facilitate decoupled communication between separate view models / components.</description>
+    <releaseNotes />
+    <copyright />
+    <language />
+    <tags>knockout pubsub</tags>
+    <dependencies>
+      <dependency id="knockoutjs" version="2.0.0" />
+    </dependencies>
+  </metadata>
+</package>
